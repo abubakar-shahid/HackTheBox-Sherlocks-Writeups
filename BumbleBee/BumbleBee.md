@@ -3,7 +3,7 @@
 ## Challenge Information
 - **Challenge Name**: BumbleBee
 - **Category**: Log Analysis
-- **Difficulty Level**: Medium
+- **Difficulty Level**: Easy
 
 ## Investigation Steps
 
