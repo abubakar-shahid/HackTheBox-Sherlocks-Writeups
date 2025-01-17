@@ -1,7 +1,19 @@
-1. # I manually looked for the most earliest logon in the Security.evtx file
+# Logjammer
 
-2. # Get the most recent firewall rule addition from Windows Firewall-Firewall.evtx
+## Challenge Information
+- **Challenge Name**: Logjammer
+- **Category**: Log Analysis
+- **Difficulty Level**: Easy
 
+## Investigation Steps
+
+### 1. Initial Security Log Analysis
+I manually looked for the most earliest logon in the Security.evtx file
+
+### 2. Firewall Rule Analysis
+Get the most recent firewall rule addition from Windows Firewall-Firewall.evtx
+
+```powershell
 Get-WinEvent -Path "Windows Firewall-Firewall.evtx" | 
     Where-Object {
         $_.ID -eq 2004 # Event ID 2004 indicates a rule addition
@@ -10,8 +22,10 @@ Get-WinEvent -Path "Windows Firewall-Firewall.evtx" |
     Sort-Object TimeCreated -Descending | 
     Select-Object -First 1 | 
     Format-List
+```
 
-This gave the following output:
+Output:
+```
 TimeCreated: 3/27/2023 7:44:43 PM
 Id: 2004
 Message: A rule has been added to the Windows Defender Firewall exception list.
@@ -31,18 +45,25 @@ Added Rule:
     Edge Traversal: None
     Modifying User: S-1-5-21-3393683511-3463148672-371912004-1001
     Modifying Application: C:\Windows\System32\mmc.exe
+```
 
-3. # The above data includes the answer for this part as well. i.e. the direction of the firewall rule
+### 3. Firewall Rule Direction
+The above data includes the answer for this part as well. i.e. the direction of the firewall rule
 
-4. # The following command checks the Security.evtx file for audit policy changes
+### 4. Audit Policy Changes
+The following command checks the Security.evtx file for audit policy changes:
+
+```powershell
 Get-WinEvent -Path "Security.evtx" | 
     Where-Object {
         $_.ID -eq 4719  # System audit policy was changed
     } | 
     Select-Object TimeCreated, ID, Message | 
     Format-List
+```
 
-This gave the following output:
+Output:
+```
 TimeCreated : 3/27/2023 7:50:03 PM
 Id : 4719
 Message : System audit policy was changed.
@@ -55,17 +76,22 @@ Subject:
 
 Audit Policy Change:
     Category:               Object Access
-    Subcategory:            Other Object Access Events // this is the answer for this part
-    Subcategory GUID:       {0cce9227-69ae-11d9-bed3-505054503030}
-    Changes:                Success Added
+    Subcategory:           Other Object Access Events // this is the answer for this part
+    Subcategory GUID:      {0cce9227-69ae-11d9-bed3-505054503030}
+    Changes:               Success Added
+```
 
-5. # The following command checks the Security.evtx file for a created scheduled task
+### 5. Scheduled Task Analysis
+The following command checks the Security.evtx file for a created scheduled task:
 
+```powershell
 Get-WinEvent -Path "Security.evtx" | Where-Object {
     $_.ID -eq 4698  # Scheduled task created
 } | Select-Object TimeCreated, ID, Message | Format-List
+```
 
-This gave the following output:
+Output:
+```
 TimeCreated : 3/27/2023 7:51:21 PM
 Id          : 4698
 Message     : A scheduled task was created.
@@ -137,30 +163,36 @@ Other Information:
     ClientProcessId    : 9320
     ParentProcessId    : 6112
     FQDN               : 0
+```
 
+### 6. Scheduled Task File Path
+The above data includes the answer for this part as well. i.e. the full path of the file which was scheduled for the task
 
-6. # The above data includes the answer for this part as well. i.e. the full path of the file which was scheduled for the task
+### 7. Scheduled Task Arguments
+The above data includes the answer for this part as well. i.e. the arguments that were passed to the scheduled task
 
-7. # The above data includes the answer for this part as well. i.e. the arguments that were passed to the scheduled task
+### 8. Windows Defender Analysis
+Get the most recent malware detection from Windows Defender:
 
-8. # Get the most recent malware detection from Windows Defender
-
+```powershell
 Get-WinEvent -Path "Windows Defender-Operational.evtx" | Where-Object {
     $_.ID -eq 1116 -or  # Malware detected
     $_.ID -eq 1117      # Malware action taken
 } | Select-Object TimeCreated, ID, Message | Sort-Object TimeCreated -Descending | Select-Object -First 1 | Format-List
+```
 
-This gave the following output:
+Output:
+```
 TimeCreated : 3/27/2023 7:42:48 PM
 Id          : 1117
 Message     : Microsoft Defender Antivirus has taken action to protect this machine from malware or other potentially unwanted software.
               For more information please see the following:
               https://go.microsoft.com/fwlink/?linkid=37020&name=HackTool:MSIL/SharpHound!MSR&threatid=2147814944&enterprise=0
-Name        : HackTool:MSIL/SharpHound!MSR // this is the answer for this part (SharpHound)
+Name        : HackTool:MSIL/SharpHound!MSR // this is the answer for this part (Sharphound)
 ID          : 2147814944
 Severity    : High
 Category    : Tool
-Path        : containerfile:\_C:\Users\CyberJunkie\Downloads\SharpHound-v1.1.0.zip; // this is the answer of the next part
+Path        : containerfile:\_C:\Users\CyberJunkie\Downloads\SharpHound-v1.1.0.zip; // this is the answer for the next part
               file:\_C:\Users\CyberJunkie\Downloads\SharpHound-v1.1.0.zip->SharpHound.exe;
               webfile:\_C:\Users\CyberJunkie\Downloads\SharpHound-v1.1.0.zip|https://objects.githubusercontent.com/github-production-release-asset-2e65be/385323486/70d776cc-8f83-44d5-b226-2dccc4f7c1e3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A4.18.2302.7F202303274.18.2302.7Fus-east-14.18.2302.7Fs34.18.2302.7Faws4_request&X-Amz-Date=20230327T144228Z&X-Amz-Expires=300&X-Amz-Signature=f969ef5ca3eec150dc1e23623434adc1e4a444ba026423c32edf5e85d881a771&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=385323486&response-content-disposition=attachment{0EBC4BEA-5532-4EFB-8A34-64F91CC8702E}BDESKTOP-887GK2L\CyberJunkiefilename{0EBC4BEA-5532-4EFB-8A34-64F91CC8702E}DSharpHound-v1.1.0.zip&response-content-type=application4.18.2302.7Foctet-stream|pid:3532,ProcessStart:133244017530289775
 Detection Origin : Internet
@@ -168,24 +200,31 @@ Detection Type   : Concrete
 Detection Source : Downloads and attachments
 User             : NT AUTHORITY\SYSTEM
 Process Name     : Unknown
-Action           : Quarantine // this is the answer for the next of next of this part
+Action           : Quarantine // this is the answer for the next to next part
 Action Status    : No additional actions required
 Error Code       : 0x80508023
 Error description: The program could not find the malware and other potentially unwanted software on this device.
 Security intelligence Version: AV: 1.385.1261.0, AS: 1.385.1261.0, NIS: 1.385.1261.0
 Engine Version   : AM: 1.1.20100.6, NIS: 1.1.20100.6
+```
 
-9. # The above data includes the answer for this part as well. i.e. the path of the malware that was detected
+### 9. Malware Path
+The above data includes the answer for this part as well. i.e. the path of the malware that was detected
 
-10. # The above data includes the answer for this part as well. i.e. the action that was taken by the antivirus
+### 10. Antivirus Action
+The above data includes the answer for this part as well. i.e. the action that was taken by the antivirus
 
-11. # Retrieve PowerShell commands with ID 4104 to identify the command executed by the user.
+### 11. PowerShell Command Analysis
+Retrieve PowerShell commands with ID 4104 to identify the command executed by the user:
 
+```powershell
 Get-WinEvent -Path "Powershell-Operational.evtx" -MaxEvents 20 | Where-Object {
     $_.ID -eq 4104  # Script block logging only
 } | Select-Object TimeCreated, ID, Message | Format-List
+```
 
-This gave the following output:
+Output:
+```
 TimeCreated : 3/27/2023 7:58:33 PM
 Id          : 4104
 Message     : Creating Scriptblock text (1 of 1):
@@ -206,8 +245,10 @@ Message     : Creating Scriptblock text (1 of 1):
               prompt
               ScriptBlock ID: daafd82b-8566-444f-b5e8-7d29072f96dc
               Path:
+```
 
-12. # In the System.evtx file, find the event with ID 104.
+### 12. System Event Log Analysis
+In the System.evtx file, find the event with ID 104.
 This is for Source: EventLog, Task Category: Log Clear.
 We can see two files here: Microsoft-Windows-Sysmon/Operational, and Microsoft-Windows-Windows Firewall With Advanced Security/Firewall.
 The first one is frequently there for many events, and the second one is only for firewall events.
